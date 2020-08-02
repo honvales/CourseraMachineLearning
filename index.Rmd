@@ -1,0 +1,51 @@
+---
+title: "Final project"
+author: "Honorio Valdes"
+date: "8/2/2020"
+output: html_document
+---
+
+## Summary
+This project explores a data set (Ugulino et al, 2012) including accelerometer data for 6 different users and aims to predict whether a user performed barbell lifts correctly. A random forest model combined with 5-fold cross validation was used to classify each of the observations into 5 categories: A (according to specification), B (throwing elbows to the front), C (lifting the dumbbell only halfway), D (lowering dumbbell only halfway), and E (throwing hips to the front). The model was able to achieved a 99.5% accuracy on the validation set and identified all 20 observations on the test set correctly.
+
+## Loading data
+The following code shows how the data was imported.
+```{r data import}
+trainfil <- download.file('https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv','pml-training.csv')
+traindata <- read.csv('pml-training.csv')
+testfil <- download.file('https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv','pml-test.csv')
+testdata <- read.csv('pml-test.csv')
+```
+
+## Data preprocessing and cleaning
+Prior to analysis, a count of missing values was performed to eliminate rows that will not contribute to the test dataset predictions. Out of the 160 variables, it was possible to reduce the count to 60 (59 variables + the predictor). Among these 60 variables, it was possible to further remove columns such as the time, date, and user names. This led to a further reduction to 53 variables (the predictor + 52 classifiers)Other strategies to further reduce the number of predictors were attempted such as determination of zero variate determination, but analysis determined the absence of zero variates. 
+```{r NA_vals}
+delcols <- colnames(testdata)[colSums(is.na(testdata))>0]
+cleantest <- testdata[,!(names(testdata) %in% delcols)][,c(8:59)]
+cleantrain <- traindata[,!(names(traindata) %in% delcols)][,c(8:60)]
+```
+
+## Building the model
+In order to train the model, the cleantrain data frame was split into 2 subsets: one for training the model (training) and the other for validation (testing) with a 80/20 split.
+```{r splitting,cache=TRUE}
+library(caret)
+set.seed(123)
+inTrain <- createDataPartition(cleantrain$classe, p = 0.8)[[1]]
+training <- cleantrain[inTrain,]
+testing <- cleantrain[-inTrain,]
+```
+
+A random forest model was used to predict the data using 5-fold cross validation. This model was chosen as it combines the output of multiple trees to create a stronger predictor. In addition, cross validation was used to prevent overfitting and for time efficiency. Using these parameters, a 15 minute execution time was achieved for an early 2013 MacBook Pro (3 GHz processor)
+```{r model,cache=TRUE}
+fitControl <- trainControl(method='cv',number=5)
+rfmod <- train(factor(classe) ~ .,method='rf', data=training,trControl=fitControl,verbose=FALSE)
+```
+
+Testing the model with the validation data reveals an accuracy of 0.9952. When using the model to predict the class of the test data set, there could be several reasons behind a larger out-of-sample error. Some examples include different observation ranges or scaling. 
+```{r pred}
+predsval <- predict(rfmod,testing)
+confusionMatrix(factor(testing$classe),predsval)
+```
+
+## Model predictions
+The model described previously was then used to predict the 20 observations in the cleantest data frame and submitted to the final course quiz for grading, predicting all observations correctly.
