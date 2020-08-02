@@ -44,8 +44,13 @@ rfmod <- train(factor(classe) ~ .,method='rf', data=training,trControl=fitContro
 ```
 
 ### Model error discussion
-The model results are summarized below and show that the model has a prediction error of 0.7%. Furthermore, the model struggles to categorize some observations more than others. For example, the classification error for category D is 1.7% and is 2 to 10 times larger than that of the other categories. Meanwhile, the error for the other categories ranges between 0.1% and 0.9%
+The model results are summarized below and show that the model has a prediction error of 0.7%. 
 ```{r summ_mod}
+rfmod
+```
+
+Furthermore, the model struggles to categorize some observations more than others. For example, the classification error for category D is 1.7% and is 2 to 10 times larger than that of the other categories. Meanwhile, the error for the other categories ranges between 0.1% and 0.9%
+```{r var_err}
 errtable <- rfmod$finalModel[['err.rate']]
 rbind(OOB = mean(errtable[,'OOB']),A = mean(errtable[,'A']),B = mean(errtable[,'B']),C = mean(errtable[,'C']),D = mean(errtable[,'D']),E = mean(errtable[,'E']))
 ```
