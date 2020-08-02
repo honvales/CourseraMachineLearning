@@ -17,8 +17,19 @@ testfil <- download.file('https://d396qusza40orc.cloudfront.net/predmachlearn/pm
 testdata <- read.csv('pml-test.csv')
 ```
 
+## Exploratory Analysis
+Due to the large amount of variables, no plots were included in the exploratory analysis. A summary for the training data is shown below. There are several columns that have constant values or character data types that might not contribute to the model. However, it is necessary to know how the type and quality of data compares between the training and testing data sets.
+```{r summ_train}
+summary(traindata)
+```
+
+A summary of the testing data is shown below. Visual inspection shows that there are multiple columns with all values missing. These columns were removed from both the training and test data sets, as described in the following section.
+```{r summ_test}
+summary(testdata)
+```
+
 ## Data preprocessing and cleaning
-Prior to analysis, a count of missing values was performed to eliminate rows that will not contribute to the test dataset predictions. Out of the 160 variables, it was possible to reduce the count to 60 (59 variables + the predictor). Among these 60 variables, it was possible to further remove columns such as the time, date, and user names. This led to a further reduction to 53 variables (the predictor + 52 classifiers)Other strategies to further reduce the number of predictors were attempted such as determination of zero variate determination, but analysis determined the absence of zero variates. 
+Prior to analysis, a count of missing values was performed to eliminate rows that will not contribute to the test data set predictions. Out of the 160 variables, it was possible to reduce the count to 60 (59 variables + the predictor). Among these 60 variables, it was possible to further remove columns such as the time, date, and user names. This led to a further reduction to 53 variables (the predictor + 52 classifiers). Other strategies to further reduce the number of predictors were attempted such as determination of zero variate determination, but analysis determined the absence of zero variates. 
 ```{r NA_vals}
 delcols <- colnames(testdata)[colSums(is.na(testdata))>0]
 cleantest <- testdata[,!(names(testdata) %in% delcols)][,c(8:59)]
@@ -26,26 +37,20 @@ cleantrain <- traindata[,!(names(traindata) %in% delcols)][,c(8:60)]
 ```
 
 ## Building the model
-In order to train the model, the cleantrain data frame was split into 2 subsets: one for training the model (training) and the other for validation (testing) with a 80/20 split.
-```{r splitting,cache=TRUE}
-library(caret)
-set.seed(123)
-inTrain <- createDataPartition(cleantrain$classe, p = 0.8)[[1]]
-training <- cleantrain[inTrain,]
-testing <- cleantrain[-inTrain,]
-```
-
-A random forest model was used to predict the data using 5-fold cross validation. This model was chosen as it combines the output of multiple trees to create a stronger predictor. In addition, cross validation was used to prevent overfitting and for time efficiency. Using these parameters, a 15 minute execution time was achieved for an early 2013 MacBook Pro (3 GHz processor)
+A random forest model was used to predict the data using 5-fold cross validation. This model was chosen as it combines the output of multiple trees to create a stronger predictor. In addition, cross validation was used to prevent overfitting and for time efficiency. Using these parameters, a 15 minute execution time was achieved for an early 2013 MacBook Pro (3 GHz processor).
 ```{r model,cache=TRUE}
 fitControl <- trainControl(method='cv',number=5)
 rfmod <- train(factor(classe) ~ .,method='rf', data=training,trControl=fitControl,verbose=FALSE)
 ```
 
-Testing the model with the validation data reveals an accuracy of 0.9952. When using the model to predict the class of the test data set, there could be several reasons behind a larger out-of-sample error. Some examples include different observation ranges or scaling. 
-```{r pred}
-predsval <- predict(rfmod,testing)
-confusionMatrix(factor(testing$classe),predsval)
+### Model error discussion
+The model results are summarized below and show that the model has a prediction error of 0.42%. Furthermore, the model struggles to categorize some observations more than others. For example, the classification error for category D is 1.3% and 10 to 100 times larger than that of the other categories. Meanwhile, the classification error for category A is about 0.03% and is the lowest. Classification error for other categories ranges between 0.1 and 0.5%.
+```{r summ_mod}
+rfmod$finalModel
 ```
 
 ## Model predictions
-The model described previously was then used to predict the 20 observations in the cleantest data frame and submitted to the final course quiz for grading, predicting all observations correctly.
+The model described previously was then used to predict the 20 observations in the cleantest data frame and submitted to the final course quiz for grading, predicting all observations correctly. Due to academic honesty concerns and as requested by the instructors, the results are not shown in this document.
+```{r preds}
+preds <- predict(rfmod,cleantest)
+```
